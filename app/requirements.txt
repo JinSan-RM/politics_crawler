@@ -1,0 +1,12 @@
+python-multipart
+opencv-python
+openpyxl
+selenium
+bs4
+brotli
+schedule
+pandas
+beautifulsoup4
+tqdm
+Pillow
+requests
