@@ -1,0 +1,46 @@
+# docker-compose 버전명시
+version: "3.8"
+name: crawling
+# 사용할 image들 즉, 생성할 컨테이너
+services: 
+  # 생성할 컨테이너 이름
+  crawler:
+    container_name: crawler  # 컨테이너 이름 지정
+    image: python:3.10-alpine  # Alpine 기반 Python 이미지 사용
+    # 포트포워딩
+    ports:
+      - 8581:8581
+    # docker build
+    build:
+      # 사용할 Dockerfile위치
+      context: ./app
+      # 사용할 Dockerfile이름
+      dockerfile: Dockerfile
+    environment:
+      
+    # volume지정
+    command: "python3 /code/app/crawler/crawler_schedule.py"
+    volumes:
+      - ./app:/code/app
+    # 컨테이너가 항상 재시작되도록 설정
+    # restart: always
+    # 로그 설정
+    logging:
+      driver: "json-file"
+      options:
+        max-size: "100m"
+        max-file: "3"
+    # 네트워크 설정 추가
+    networks:
+      crawler_network:
+        ipv4_address: 172.20.0.2  # 고정 IP 할당
+
+# 네트워크 정의
+networks:
+  crawler_network:
+    driver: bridge
+    ipam:
+      driver: default
+      config:
+        - subnet: 172.20.0.0/16
+          gateway: 172.20.0.1
