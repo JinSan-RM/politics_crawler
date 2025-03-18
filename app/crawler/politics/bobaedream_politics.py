@@ -152,6 +152,7 @@ def bobaedream_bestboard_crawl(url: str = 'https://www.bobaedream.co.kr/list?cod
             if views >= min_views:
                 posts.append({
                     "Post ID": post_id,
+                    "Community": "7p",
                     "Category": category,
                     "Title": title,
                     "Link": link,

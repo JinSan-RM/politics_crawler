@@ -162,6 +162,7 @@ def ppomppu_politics_crawl(url: str = 'https://www.ppomppu.co.kr/zboard/zboard.p
 
                 posts.append({
                     "Post ID": post_num,
+                    "Community": "5",
                     "Category": category,
                     "Title": title,
                     "Link": link,

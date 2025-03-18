@@ -193,6 +193,7 @@ def mlbpark_board_crawl(url: str = 'https://mlbpark.donga.com/mp/b.php?p=1&m=lis
                         
                         data.append({
                             "Post ID": post_id,
+                            "Community": "9",
                             "Category": category,
                             "Title": title,
                             "Link": link,

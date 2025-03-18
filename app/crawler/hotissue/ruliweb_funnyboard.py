@@ -224,6 +224,7 @@ def ruliweb_humor_crawl(url: str = 'https://bbs.ruliweb.com/best/humor',
                 
                 data.append({
                     "Post_ID": post_id,
+                    "Community": "6",
                     "Category": category,
                     "Title": title,
                     "Link": link,

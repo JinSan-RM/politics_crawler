@@ -192,6 +192,7 @@ def mlbpark_politics_crawl(url: str = 'https://mlbpark.donga.com/mp/b.php?m=sear
                         
                         data.append({
                             "Post ID": post_id,
+                            "Community": "9p",
                             "Category": category,
                             "Title": title,
                             "Link": link,

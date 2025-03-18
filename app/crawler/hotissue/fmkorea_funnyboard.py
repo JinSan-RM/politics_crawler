@@ -205,6 +205,7 @@ def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
                 
                 posts.append({
                     "Post_ID": post_num,
+                    "Community": "11",
                     "Category": category,
                     "Title": title,
                     "Link": link,

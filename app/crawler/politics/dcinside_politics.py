@@ -201,6 +201,7 @@ def dcinside_politics_crawl(url: str = 'https://gall.dcinside.com/board/lists/?i
                 
                 data.append({
                     "Post ID": post_num,
+                    "Community": "1p",
                     "Category": category,  # 카테고리 추가
                     "Title": title,
                     "Link": link,

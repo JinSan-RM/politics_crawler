@@ -228,6 +228,7 @@ def ruliweb_politics_crawl(url: str = 'https://bbs.ruliweb.com/community/board/3
                 
                 data.append({
                     "Post_ID": post_id,
+                    "Community": "6p",
                     "Category": category,
                     "Title": title,
                     "Link": link,

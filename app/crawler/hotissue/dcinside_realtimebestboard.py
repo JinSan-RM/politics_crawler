@@ -189,6 +189,7 @@ def dcinside_realtimebest_crawl(url: str = 'https://gall.dcinside.com/board/list
             
             filtered_posts.append({
                 "Post ID": post_num,
+                "Community": "1",
                 "category": "N/A",
                 "Title": title,
                 "Link": link,

@@ -141,6 +141,7 @@ def dcinside_peoplepower_crawl(url: str = 'https://gall.dcinside.com/mgallery/bo
 
             data.append({
                 "Post ID": post_num,
+                "Community": "1p",
                 "Category": category,
                 "Title": title,
                 "Link": link,

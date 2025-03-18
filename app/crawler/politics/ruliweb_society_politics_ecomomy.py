@@ -232,6 +232,7 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
                 
                 data.append({
                     "Post ID": post_id,
+                    "Community": "6p",
                     "Category": divsn,
                     "Title": title,
                     "Link": link,

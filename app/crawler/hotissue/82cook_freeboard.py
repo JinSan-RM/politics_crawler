@@ -22,13 +22,6 @@ def get_headers():
         "Referer": "https://www.bobaedream.co.kr/"
     }
 
-# URL에서 게시글 ID 추출 함수
-def extract_post_id(url):
-    match = re.search(r'No=(\d+)', url)
-    if match:
-        return match.group(1)
-    return None
-
 # 게시글 내용 크롤링 (정적 방식)
 def get_post_content(post_url):
     try:
@@ -38,19 +31,10 @@ def get_post_content(post_url):
         response.encoding = 'utf-8'  # 이 부분 추가 필수!
         soup = Soup(response.text, "html.parser")
 
-        # 게시글 ID 추출 시도 (copyAddress 클래스에서)
-        post_id = None
-        copy_address = soup.find("p", class_="copyAddress")
-        if copy_address:
-            button = copy_address.find("button", class_="ipAdd")
-            if button:
-                url_text = button.get_text(strip=True)
-                post_id = extract_post_id(url_text)
-
-        content_div = soup.find("div", class_="bodyCont") or soup.find("div", id="bodyCont")
+        content_div = soup.find("div", class_="rd_body clear") or soup.find("article", itemprop="articleBody")
         if not content_div:
             print(f"내용 영역을 찾을 수 없습니다: {post_url}")
-            return {"text": "", "images": [], "post_id": post_id}
+            return {"text": "", "images": []}
 
         text_content = content_div.get_text(separator="\n", strip=True)
 
@@ -62,14 +46,14 @@ def get_post_content(post_url):
                     src = f"https:{src}"
                 image_urls.append(src)
 
-        return {"text": text_content, "images": image_urls, "post_id": post_id}
+        return {"text": text_content, "images": image_urls}
     except Exception as e:
         print(f"게시글 크롤링 실패: {post_url} - {e}")
-        return {"text": "", "images": [], "post_id": None}
+        return {"text": "", "images": []}
 
 # 보배드림 베스트 게시판 크롤링 메인 함수 (정적 방식)
-def bobaedream_bestboard_crawl(min_views=10000, max_page=3):
-    base_url = 'https://www.bobaedream.co.kr/list?code=best'
+def bobaedream_bestboard_crawl(min_views=30000, max_page=3):
+    base_url = 'https://www.82cook.com/entiz/enti.php?bn=15'
     today = datetime.now().date()
     data = []
 
@@ -88,33 +72,34 @@ def bobaedream_bestboard_crawl(min_views=10000, max_page=3):
                 print("게시판 테이블을 찾을 수 없습니다.")
                 continue
 
-            posts = board_table.find("tbody").find_all("tr", attrs={"itemtype": "http://schema.org/Article"})
+            posts = board_table.find("tbody", class_="hide_notice").find_all("tr", attrs={"itemtype": "http://schema.org/Article"})
             for post in posts:
                 if post.get("class") and "notice" in post.get("class"):
                     continue
 
-                date_str = post.find("td", class_="date").text.strip()
+                date_str = post.find("td", class_="time").text.strip()
                 if ":" not in date_str:  # 오늘 날짜 아닌 경우 skip
                     continue
 
-                views_text = post.find("td", class_="count").text.strip().replace(',', '')
+                views_text = post.find("td", class_="m_no").text.strip().replace(',', '')
                 views = int(views_text) if views_text.isdigit() else 0
                 if views < min_views:
                     continue
 
-                title_elem = post.find("a", class_="bsubject")
+                title_elem = post.find("a", class_="title")
                 title = title_elem.text.strip()
                 link = title_elem["href"]
                 link = f"https://www.bobaedream.co.kr{link}" if not link.startswith('http') else link
                 
                 # URL에서 게시글 ID 추출
-                post_id = extract_post_id(link)
+                post_elem = post.fine("td", class_="no")
+                post_id = post_elem.text.strip() if post_elem else ""
+                
 
-                category_elem = post.find("td", class_="category")
+                category_elem = post.find("td", class_="cate")
                 category = category_elem.text.strip() if category_elem else ""
 
-                writer_elem = post.find("span", class_="author")
-                writer = writer_elem.text.strip() if writer_elem else ""
+                writer = "무명의 더쿠"
 
                 recommend_elem = post.find("td", class_="recomm").find("font")
                 recommend_text = recommend_elem.text.strip() if recommend_elem else '0'
@@ -127,7 +112,7 @@ def bobaedream_bestboard_crawl(min_views=10000, max_page=3):
 
                 data.append({
                     "Post_ID": final_post_id,  # 게시글 ID 추가
-                    "Community": "7",
+                    "Community": "8",
                     "Category": category,
                     "Title": title,
                     "Link": link,
@@ -164,7 +149,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = bobaedream_bestboard_crawl(min_views=10000)  # 최소 조회수 10000으로 설정
+    df = bobaedream_bestboard_crawl(min_views=30000)  # 최소 조회수 10000으로 설정
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

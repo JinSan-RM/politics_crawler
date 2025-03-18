@@ -212,6 +212,7 @@ def fmkorea_politics_crawl(min_views=1000, max_pages=10):
                 
                 posts.append({
                     "Post_ID": post_num,
+                    "Community": "11p",
                     "Category": category,
                     "Title": title,
                     "Link": link,

@@ -11,7 +11,7 @@ log_dir = "logs"
 os.makedirs(log_dir, exist_ok=True)
 
 logging.basicConfig(
-    level=logging.INFO,
+    level=logging.DEBUG,
     format='%(asctime)s - %(levelname)s - %(message)s',
     handlers=[
         logging.FileHandler(f"{log_dir}/crawler_{datetime.now().strftime('%Y%m%d')}.log"),
@@ -21,27 +21,27 @@ logging.basicConfig(
 
 # 크롤러 목록 정의
 hotissue_crawlers = [
-    "/code/app/crawler/hotissue/bobaedream_bestboard.py",
-    "/code/app/crawler/hotissue/dcinside_realtimebestboard.py",
-    "/code/app/crawler/hotissue/fmkorea_funnyboard.py",
+    # "/code/app/crawler/hotissue/bobaedream_bestboard.py",
+    # "/code/app/crawler/hotissue/dcinside_realtimebestboard.py",
+    # "/code/app/crawler/hotissue/fmkorea_funnyboard.py",
     "/code/app/crawler/hotissue/inven_openissue.py",
-    "/code/app/crawler/hotissue/mlbpark_bullpen.py",
+    # "/code/app/crawler/hotissue/mlbpark_bullpen.py",
     # "/code/app/crawler/hotissue/ppomppu_freeboard.py",
-    "/code/app/crawler/hotissue/ruliweb_funnyboard.py"
+    # "/code/app/crawler/hotissue/ruliweb_funnyboard.py"
 ]
 
 politics_crawlers = [
-    "/code/app/crawler/politics/bobaedream_politics.py",
-    "/code/app/crawler/politics/dcinside_peoplepower.py",
-    "/code/app/crawler/politics/dcinside_politics.py",
-    "/code/app/crawler/politics/fmkorea_politics.py",
-    "/code/app/crawler/politics/mlbpark_politics.py",
+    # "/code/app/crawler/politics/bobaedream_politics.py",
+    # "/code/app/crawler/politics/dcinside_peoplepower.py",
+    # "/code/app/crawler/politics/dcinside_politics.py",
+    # "/code/app/crawler/politics/fmkorea_politics.py",
+    # "/code/app/crawler/politics/mlbpark_politics.py",
     # "/code/app/crawler/politics/ppomppu_politics.py",
-    "/code/app/crawler/politics/ruliweb_politics.py",
-    "/code/app/crawler/politics/ruliweb_society_politics_ecomomy.py"
+    # "/code/app/crawler/politics/ruliweb_politics.py",
+    # "/code/app/crawler/politics/ruliweb_society_politics_ecomomy.py"
 ]
 
-def run_crawler(script_path, timeout_seconds=600):  # 기본 5분(300초) 타임아웃
+def run_crawler(script_path, timeout_seconds=1200):  # 기본 5분(300초) 타임아웃
     """단일 크롤러 실행 및 결과 반환 (타임아웃 적용)"""
     try:
         logging.info(f"크롤러 실행 중: {script_path}")
@@ -78,7 +78,6 @@ def run_all_crawlers():
     """모든 크롤러 순차적으로 실행"""
     logging.info("=== 크롤링 작업 시작 ===")
     
-    # 실행 결과 추적
     results = {
         "hotissue": {"success": 0, "failed": 0, "failed_list": [], "success_list": []},
         "politics": {"success": 0, "failed": 0, "failed_list": [], "success_list": []}
@@ -94,7 +93,7 @@ def run_all_crawlers():
         else:
             results["hotissue"]["failed"] += 1
             results["hotissue"]["failed_list"].append(crawler)
-        time.sleep(30)  # 크롤러 간 30초 간격
+        time.sleep(30)
     
     # 정치 크롤러 실행
     logging.info("정치 크롤러 실행 시작")
@@ -106,7 +105,7 @@ def run_all_crawlers():
         else:
             results["politics"]["failed"] += 1
             results["politics"]["failed_list"].append(crawler)
-        time.sleep(30)  # 크롤러 간 30초 간격
+        time.sleep(30)
     
     # 결과 요약
     logging.info("=== 크롤링 작업 완료 ===")
@@ -121,15 +120,14 @@ def run_all_crawlers():
     # 성공한 크롤러에 대해서만 데이터 삽입
     for crawler in results["hotissue"]["success_list"]:
         try:
-            # CSV 파일 경로 수정 (절대 경로 사용)
+            import pandas as pd
             base_name = os.path.basename(crawler)
             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
-            base_data_folder = '/code/data'  # Docker 환경의 절대 경로
+            base_data_folder = '/code/data'
             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
             csv_path = os.path.join(today_folder, csv_name)
             
             if os.path.exists(csv_path):
-                import pandas as pd
                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
                 data = df.to_dict('records')
                 insert_to_db(data, is_politics=False)
@@ -139,21 +137,100 @@ def run_all_crawlers():
 
     for crawler in results["politics"]["success_list"]:
         try:
-            # CSV 파일 경로 수정 (절대 경로 사용)
             base_name = os.path.basename(crawler)
             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
-            base_data_folder = '/code/data'  # Docker 환경의 절대 경로
+            base_data_folder = '/code/data'
             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
             csv_path = os.path.join(today_folder, csv_name)
             
             if os.path.exists(csv_path):
-                import pandas as pd
                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
                 data = df.to_dict('records')
                 insert_to_db(data, is_politics=True)
                 logging.info(f"정치 데이터 삽입 완료: {csv_path}")
         except Exception as e:
             logging.error(f"정치 데이터 삽입 중 오류 발생: {str(e)}")
+
+# def run_all_crawlers():
+#     """모든 크롤러 순차적으로 실행"""
+#     logging.info("=== 크롤링 작업 시작 ===")
+    
+#     # 실행 결과 추적
+#     results = {
+#         "hotissue": {"success": 0, "failed": 0, "failed_list": [], "success_list": []},
+#         "politics": {"success": 0, "failed": 0, "failed_list": [], "success_list": []}
+#     }
+    
+#     # 핫이슈 크롤러 실행
+#     logging.info("핫이슈 크롤러 실행 시작")
+#     for crawler in hotissue_crawlers:
+#         success = run_crawler(crawler)
+#         if success:
+#             results["hotissue"]["success"] += 1
+#             results["hotissue"]["success_list"].append(crawler)
+#         else:
+#             results["hotissue"]["failed"] += 1
+#             results["hotissue"]["failed_list"].append(crawler)
+#         time.sleep(30)  # 크롤러 간 30초 간격
+    
+#     # 정치 크롤러 실행
+#     logging.info("정치 크롤러 실행 시작")
+#     for crawler in politics_crawlers:
+#         success = run_crawler(crawler)
+#         if success:
+#             results["politics"]["success"] += 1
+#             results["politics"]["success_list"].append(crawler)
+#         else:
+#             results["politics"]["failed"] += 1
+#             results["politics"]["failed_list"].append(crawler)
+#         time.sleep(30)  # 크롤러 간 30초 간격
+    
+#     # 결과 요약
+#     logging.info("=== 크롤링 작업 완료 ===")
+#     logging.info(f"핫이슈: 성공 {results['hotissue']['success']}, 실패 {results['hotissue']['failed']}")
+#     logging.info(f"정치: 성공 {results['politics']['success']}, 실패 {results['politics']['failed']}")
+    
+#     if results["hotissue"]["failed"] > 0:
+#         logging.info(f"실패한 핫이슈 크롤러: {', '.join(results['hotissue']['failed_list'])}")
+#     if results["politics"]["failed"] > 0:
+#         logging.info(f"실패한 정치 크롤러: {', '.join(results['politics']['failed_list'])}")
+    
+#     # 성공한 크롤러에 대해서만 데이터 삽입
+#     for crawler in results["hotissue"]["success_list"]:
+#         try:
+#             # CSV 파일 경로 수정 (절대 경로 사용)
+#             base_name = os.path.basename(crawler)
+#             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
+#             base_data_folder = '/code/data'  # Docker 환경의 절대 경로
+#             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
+#             csv_path = os.path.join(today_folder, csv_name)
+            
+#             if os.path.exists(csv_path):
+#                 import pandas as pd
+#                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
+#                 data = df.to_dict('records')
+#                 insert_to_db(data, is_politics=False)
+#                 logging.info(f"핫이슈 데이터 삽입 완료: {csv_path}")
+#         except Exception as e:
+#             logging.error(f"핫이슈 데이터 삽입 중 오류 발생: {str(e)}")
+
+#     for crawler in results["politics"]["success_list"]:
+#         try:
+#             # CSV 파일 경로 수정 (절대 경로 사용)
+#             base_name = os.path.basename(crawler)
+#             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
+#             base_data_folder = '/code/data'  # Docker 환경의 절대 경로
+#             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
+#             csv_path = os.path.join(today_folder, csv_name)
+            
+#             if os.path.exists(csv_path):
+#                 import pandas as pd
+#                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
+#                 data = df.to_dict('records')
+#                 insert_to_db(data, is_politics=True)
+#                 logging.info(f"정치 데이터 삽입 완료: {csv_path}")
+#         except Exception as e:
+#             logging.error(f"정치 데이터 삽입 중 오류 발생: {str(e)}")
 
 def check_crawler_files():
     """크롤러 파일이 존재하는지 확인"""
@@ -171,13 +248,47 @@ def check_crawler_files():
 
 import mysql.connector
 from mysql.connector import Error
+# import logging
+
+# 로깅 설정 (기본 설정, 필요 시 파일로 출력하도록 조정 가능)
+# logging.basicConfig(level=logging.DEBUG, format='%(asctime)s - %(levelname)s - %(message)s')
+
+def select_site_info(cursor, table_name, key_values, use_title_writer=False):
+    """게시글 중복 체크 (post_id와 community 기준, 또는 title과 writer 기준)"""
+    if use_title_writer:
+        query = f"SELECT seq, reg_date, views, recommend, content, images FROM {table_name} WHERE title = %s AND writer = %s"
+        logging.debug(f"Executing query (title, writer): {query} with values {key_values}")
+        cursor.execute(query, key_values)
+    else:
+        query = f"SELECT seq, reg_date, views, recommend, content, images FROM {table_name} WHERE post_id = %s AND community = %s"
+        logging.debug(f"Executing query (post_id, community): {query} with values {key_values}")
+        cursor.execute(query, key_values)
+    
+    result = cursor.fetchone()
+    if cursor.description:
+        cursor.fetchall()  # 남은 결과 소비
+    logging.debug(f"Query result: {result}")
+    return result  # (seq, reg_date, views, recommend, content, images) or None
+
+def insert_site_info(cursor, table_name, values):
+    """새 게시글 삽입"""
+    query = f"INSERT INTO {table_name} (post_id, community, category, title, link, writer, reg_date, views, recommend, content, images) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
+    logging.debug(f"Inserting new record with values: {values}")
+    cursor.execute(query, values)
+
+def update_site_info(cursor, table_name, values):
+    """기존 게시글 업데이트"""
+    query = f"UPDATE {table_name} SET reg_date = %s, views = %s, recommend = %s, content = %s, images = %s WHERE seq = %s"
+    logging.debug(f"Updating record with values: {values}")
+    cursor.execute(query, values)
 
 def insert_to_db(data, is_politics=True):
     conn = None
     cursor = None
     
     try:
-        import pandas as pd  # 함수 내에서 임포트
+        import pandas as pd
+        import json
         
         conn = mysql.connector.connect(
             host=os.environ.get('DB_HOST'),
@@ -189,38 +300,30 @@ def insert_to_db(data, is_politics=True):
         )
         cursor = conn.cursor()
         
-        # 테이블 선택
         table_name = "pgm_current_site" if is_politics else "pgm_hot_site"
-        
-        query = f"""
-        INSERT INTO {table_name} 
-        (post_id, category, title, link, writer, reg_date, views, recommend, content, images) 
-        VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
-        """
-        
+
         for item in data:
-            # 모든 필드에 대해 강화된 NaN 검사 및 처리
             processed_item = {}
             for key, value in item.items():
-                # 1. pandas의 isna() 함수로 더 광범위한 NaN 검사
-                if pd.isna(value) or value == 'nan' or value == 'NaN' or value == 'None':
+                if pd.isna(value) or value in ('nan', 'NaN', 'None'):
                     processed_item[key] = None
                 else:
                     processed_item[key] = value
             
-            # 날짜 처리
-            date_value = processed_item.get('Date', datetime.now())
-            if isinstance(date_value, str):
+            reg_date_value = processed_item.get('Date', datetime.now())
+            if isinstance(reg_date_value, datetime):
+                reg_date_value = reg_date_value.strftime('%Y-%m-%d %H:%M:%S')
+            elif isinstance(reg_date_value, str):
                 try:
-                    date_value = datetime.strptime(date_value, '%Y-%m-%d %H:%M:%S')
+                    reg_date_value = datetime.strptime(reg_date_value, '%Y-%m-%d %H:%M:%S').strftime('%Y-%m-%d %H:%M:%S')
                 except ValueError:
                     try:
-                        date_value = datetime.strptime(date_value, '%Y-%m-%d %H:%M')
+                        reg_date_value = datetime.strptime(reg_date_value, '%Y-%m-%d %H:%M').strftime('%Y-%m-%d %H:%M:%S')
                     except ValueError:
-                        date_value = datetime.now()
+                        reg_date_value = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
-            # 각 필드별 안전한 처리
             post_id = str(processed_item.get('Post ID', '')) if processed_item.get('Post ID') is not None else ''
+            community = str(processed_item.get('Community', '')) if processed_item.get('Community') is not None else ''
             category = str(processed_item.get('Category', '')) if processed_item.get('Category') is not None else ''
             title = str(processed_item.get('Title', '')) if processed_item.get('Title') is not None else ''
             link = str(processed_item.get('Link', '')) if processed_item.get('Link') is not None else ''
@@ -229,52 +332,92 @@ def insert_to_db(data, is_politics=True):
             recommend = int(processed_item.get('Recommend', 0)) if processed_item.get('Recommend') is not None else 0
             content = str(processed_item.get('Content', '')) if processed_item.get('Content') is not None else ''
             
-            # 이미지 리스트 처리
             images = processed_item.get('Images', [])
             if images is None:
                 images_str = '[]'
             elif isinstance(images, str):
                 images_str = images
             else:
-                try:
-                    import json
-                    images_str = json.dumps(images)
-                except:
-                    images_str = str(images)
+                images_str = json.dumps(images, ensure_ascii=False)
             
-            values = (post_id, category, title, link, writer, date_value, views, recommend, content, images_str)
+            # 중복 체크 기준 결정
+            use_title_writer = not post_id or post_id.strip() == ''
+            if use_title_writer:
+                if not title or not writer:
+                    logging.warning(f"Title 또는 Writer가 비어 있음 - 삽입 건너뜀: {processed_item}")
+                    continue
+                key_values = (title, writer)
+                logging.debug(f"Checking for existing record with Title: {title}, Writer: {writer}")
+            else:
+                key_values = (post_id, community)
+                logging.debug(f"Checking for existing record with Post ID: {post_id}, Community: {community}")
             
-            try:
-                cursor.execute(query, values)
-            except mysql.connector.Error as e:
-                logging.error(f"쿼리 실행 오류: {e}, 값: {values}")
-                continue  # 오류 발생 시 다음 항목으로 진행
+            existing = select_site_info(cursor, table_name, key_values, use_title_writer=use_title_writer)
+            
+            if existing is None:
+                logging.debug(f"No existing record found. Inserting new record: {processed_item}")
+                insert_values = (post_id, community, category, title, link, writer, reg_date_value, views, recommend, content, images_str)
+                insert_site_info(cursor, table_name, insert_values)
+                logging.debug(f"Successfully inserted new record - Title: {title}, Writer: {writer}")
+            
+            elif isinstance(existing, tuple) and len(existing) >= 6:
+                seq, existing_reg_date, existing_views, existing_recommend, existing_content, existing_images = existing
+                logging.debug(f"Existing record found: (seq: {seq}, reg_date: {existing_reg_date}, views: {existing_views}, recommend: {existing_recommend}, content: {existing_content}, images: {existing_images})")
+                logging.debug(f"New record data: (reg_date: {reg_date_value}, views: {views}, recommend: {recommend}, content: {content}, images: {images_str})")
+                
+                is_identical = (
+                    reg_date_value == existing_reg_date and
+                    str(views) == str(existing_views) and
+                    str(recommend) == str(existing_recommend) and
+                    content == existing_content and
+                    images_str == existing_images and
+                    category == str(processed_item.get('Category', '')) and
+                    title == str(processed_item.get('Title', '')) and
+                    link == str(processed_item.get('Link', '')) and
+                    writer == str(processed_item.get('Writer', ''))
+                )
+                
+                if is_identical:
+                    logging.debug(f"Records are identical. Skipping - Title: {title}, Writer: {writer}")
+                    continue
+                else:
+                    logging.debug(f"Records differ. Updating record with seq: {seq}")
+                    update_values = (reg_date_value, views, recommend, content, images_str, seq)
+                    update_site_info(cursor, table_name, update_values)
+                    logging.debug(f"Successfully updated record - Title: {title}, Writer: {writer}")
+            else:
+                logging.error(f"Invalid existing data format: {existing}")
+                continue
         
         conn.commit()
+        logging.info(f"Transaction committed for table: {table_name}")
         return True
         
     except mysql.connector.Error as e:
         logging.error(f"DB 삽입 오류: {e}")
+        if conn:
+            conn.rollback()
         return False
     except Exception as e:
-        logging.error(f"일반 오류: {str(e)}")
+        logging.error(f"예상치 못한 오류: {str(e)}")
+        if conn:
+            conn.rollback()
         return False
     finally:
         if cursor:
             cursor.close()
-        if conn and conn.is_connected():
+        if conn:
             conn.close()
-
-
+        logging.debug("Connection and cursor closed")
 
 # 매일 지정된 시간에 실행
 schedule.every().day.at("05:00").do(run_all_crawlers)
 schedule.every().day.at("11:00").do(run_all_crawlers)
-schedule.every().day.at("16:00").do(run_all_crawlers)
-schedule.every().day.at("21:00").do(run_all_crawlers)
+schedule.every().day.at("17:00").do(run_all_crawlers)
+schedule.every().day.at("23:00").do(run_all_crawlers)
 
 # 시작 시 즉시 실행 (테스트용)
-logging.info("스케줄러 시작됨 - 5시, 11시, 16시, 21시에 크롤러가 실행됩니다.")
+logging.info("스케줄러 시작됨 - 5시, 11시, 17시, 23시에 크롤러가 실행됩니다.")
 logging.info("시작 시 즉시 크롤러를 실행합니다.")
 
 # 파일 존재 여부 확인
