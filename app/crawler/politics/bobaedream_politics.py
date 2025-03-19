@@ -200,12 +200,12 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = bobaedream_bestboard_crawl(delay=5, min_views=1000)  # 최소 조회수 10000으로 설정
+    df = bobaedream_bestboard_crawl(delay=5, min_views=150)  # 최소 조회수 10000으로 설정
     if df is not None:
         print(df[["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"]])
         
         # 오늘 날짜 폴더에 CSV 파일 저장
-        file_name = f"bobaedream_bestboard_{today}.csv"
+        file_name = f"bobaedream_politics_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"데이터가 '{file_path}' 파일로 저장되었습니다.")

@@ -126,7 +126,7 @@ def bobaedream_bestboard_crawl(min_views=10000, max_page=3):
                 final_post_id = content_data.get("post_id") or post_id
 
                 data.append({
-                    "Post_ID": final_post_id,  # 게시글 ID 추가
+                    "Post ID": final_post_id,  # 게시글 ID 추가
                     "Community": "7",
                     "Category": category,
                     "Title": title,

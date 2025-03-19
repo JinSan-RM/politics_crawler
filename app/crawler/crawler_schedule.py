@@ -21,24 +21,27 @@ logging.basicConfig(
 
 # 크롤러 목록 정의
 hotissue_crawlers = [
-    # "/code/app/crawler/hotissue/bobaedream_bestboard.py",
-    # "/code/app/crawler/hotissue/dcinside_realtimebestboard.py",
-    # "/code/app/crawler/hotissue/fmkorea_funnyboard.py",
+    "/code/app/crawler/hotissue/bobaedream_bestboard.py",
+    "/code/app/crawler/hotissue/dcinside_realtimebestboard.py",
+    "/code/app/crawler/hotissue/fmkorea_funnyboard.py",
     "/code/app/crawler/hotissue/inven_openissue.py",
-    # "/code/app/crawler/hotissue/mlbpark_bullpen.py",
-    # "/code/app/crawler/hotissue/ppomppu_freeboard.py",
-    # "/code/app/crawler/hotissue/ruliweb_funnyboard.py"
+    "/code/app/crawler/hotissue/mlbpark_bullpen.py",
+    "/code/app/crawler/hotissue/ppomppu_freeboard.py",
+    "/code/app/crawler/hotissue/ruliweb_funnyboard.py",
+    "/code/app/crawler/hotissue/82cook_freeboard.py",
+    "/code/app/crawler/hotissue/clien_parkboard.py",
+    "/code/app/crawler/hotissue/instiz_issue.py"
 ]
 
 politics_crawlers = [
-    # "/code/app/crawler/politics/bobaedream_politics.py",
-    # "/code/app/crawler/politics/dcinside_peoplepower.py",
-    # "/code/app/crawler/politics/dcinside_politics.py",
-    # "/code/app/crawler/politics/fmkorea_politics.py",
-    # "/code/app/crawler/politics/mlbpark_politics.py",
-    # "/code/app/crawler/politics/ppomppu_politics.py",
-    # "/code/app/crawler/politics/ruliweb_politics.py",
-    # "/code/app/crawler/politics/ruliweb_society_politics_ecomomy.py"
+    "/code/app/crawler/politics/bobaedream_politics.py",
+    "/code/app/crawler/politics/dcinside_peoplepower.py",
+    "/code/app/crawler/politics/dcinside_politics.py",
+    "/code/app/crawler/politics/fmkorea_politics.py",
+    "/code/app/crawler/politics/mlbpark_politics.py",
+    "/code/app/crawler/politics/ppomppu_politics.py",
+    "/code/app/crawler/politics/ruliweb_politics.py",
+    "/code/app/crawler/politics/ruliweb_society_politics_ecomomy.py"
 ]
 
 def run_crawler(script_path, timeout_seconds=1200):  # 기본 5분(300초) 타임아웃
@@ -323,7 +326,17 @@ def insert_to_db(data, is_politics=True):
                         reg_date_value = datetime.now().strftime('%Y-%m-%d %H:%M:%S')
             
             post_id = str(processed_item.get('Post ID', '')) if processed_item.get('Post ID') is not None else ''
-            community = str(processed_item.get('Community', '')) if processed_item.get('Community') is not None else ''
+            community = processed_item.get('Community', '') if processed_item.get('Community') is not None else ''
+            if is_politics:  # 정치 관련 데이터일 경우
+                import re
+                match = re.match(r'^(\d+)(p)?$', community)  # 숫자로 시작하고 p가 붙었는지 확인
+                if match:
+                    if not match.group(2):  # 숫자만 있고 p가 없는 경우
+                        community += 'p'
+                        logging.debug(f"Community 값에 'p' 추가됨: {community}")
+                else:  # 숫자로 시작하지 않거나 올바르지 않은 형식인 경우
+                    logging.warning(f"Community 값이 올바르지 않음. 건너뜀: {community}")
+                    continue
             category = str(processed_item.get('Category', '')) if processed_item.get('Category') is not None else ''
             title = str(processed_item.get('Title', '')) if processed_item.get('Title') is not None else ''
             link = str(processed_item.get('Link', '')) if processed_item.get('Link') is not None else ''

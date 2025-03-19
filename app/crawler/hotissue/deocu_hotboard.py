@@ -52,7 +52,7 @@ def get_post_content(post_url):
         return {"text": "", "images": []}
 
 # 보배드림 베스트 게시판 크롤링 메인 함수 (정적 방식)
-def bobaedream_bestboard_crawl(min_views=30000, max_page=3):
+def bobaedream_bestboard_crawl(min_views=10000, max_page=3):
     base_url = 'https://theqoo.net/hot?filter_mode=normal'
     today = datetime.now().date()
     data = []
@@ -111,7 +111,7 @@ def bobaedream_bestboard_crawl(min_views=30000, max_page=3):
                 final_post_id = content_data.get("post_id") or post_id
 
                 data.append({
-                    "Post_ID": final_post_id,  # 게시글 ID 추가
+                    "Post ID": final_post_id,  # 게시글 ID 추가
                     "Community": "2",
                     "Category": category,
                     "Title": title,
@@ -149,13 +149,13 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = bobaedream_bestboard_crawl(min_views=30000)  # 최소 조회수 10000으로 설정
+    df = bobaedream_bestboard_crawl(min_views=10000)  # 최소 조회수 10000으로 설정
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
         
         # CSV 파일 저장 시 utf-8-sig로 인코딩 설정 (한글 깨짐 방지)
-        file_name = f"bobaedream_bestboard_{today}.csv"
+        file_name = f"bobaedream_hotboard_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"데이터가 '{file_path}' 파일로 저장되었습니다.")

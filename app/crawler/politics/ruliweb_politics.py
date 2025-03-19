@@ -97,7 +97,7 @@ def clean_text(text):
 
 def ruliweb_politics_crawl(url: str = 'https://bbs.ruliweb.com/community/board/300148',
                         delay: int = 5,
-                        min_views: int = 1000,
+                        min_views: int = 400,
                         max_consecutive_not_today=3):
     today = datetime.now().date()
     data = []
@@ -227,7 +227,7 @@ def ruliweb_politics_crawl(url: str = 'https://bbs.ruliweb.com/community/board/3
                 post_links_set.add(link)
                 
                 data.append({
-                    "Post_ID": post_id,
+                    "Post ID": post_id,
                     "Community": "6p",
                     "Category": category,
                     "Title": title,
@@ -276,12 +276,12 @@ if __name__ == "__main__":
     
     df = ruliweb_politics_crawl(
         delay=5, 
-        min_views=1000, 
+        min_views=400, 
         max_consecutive_not_today=3  # 오늘 날짜가 아닌 게시글이 연속 3개 이상이면 종료
     )
     
     if df is not None and not df.empty:
-        available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
+        available_cols = [col for col in ["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
         
         # 오늘 날짜 폴더에 CSV 파일 저장

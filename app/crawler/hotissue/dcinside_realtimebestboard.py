@@ -6,6 +6,7 @@ from bs4 import BeautifulSoup as Soup
 import random
 from urllib.parse import urljoin
 import os 
+
 # 헤더 설정 (User-Agent 회전)
 def get_headers():
     user_agents = [
@@ -66,7 +67,7 @@ def get_post_content(post_url, delay=5):
 
 # 게시판 목록 크롤링
 def dcinside_realtimebest_crawl(url: str = 'https://gall.dcinside.com/board/lists/?id=dcbest',
-                         min_views: int = 30000,  # 최소 조회수 30000으로 설정
+                         min_views: int = 10000,  # 최소 조회수 30000으로 설정
                          delay: int = 5):
     today = datetime.now().date()
     print(f"오늘 날짜: {today}")
@@ -82,18 +83,20 @@ def dcinside_realtimebest_crawl(url: str = 'https://gall.dcinside.com/board/list
     max_consecutive_empty = 3  # 연속 3페이지 동안 오늘 게시글 없으면 종료
     
     while True:
+        if page > 5:
+            break
         page_url = f"{url}&page={page}"
         print(f"\n{'='*50}")
-        print(f"페이지 {page} 크롤링 중: {page_url}")
+        print(f"페이지 {page} 크롤링 중: {page_url}", flush=True)
         
         try:
             headers = get_headers()
             print(f"사용 중인 User-Agent: {headers['User-Agent'][:30]}...")
             response = requests.get(page_url, headers=headers, timeout=10)
             response.raise_for_status()
-            print(f"응답 상태 코드: {response.status_code}")
+            print(f"응답 상태 코드: {response.status_code}", flush=True)
             soup = Soup(response.text, "html.parser")
-            print(f"목록 페이지 로드 완료: {page_url}")
+            print(f"목록 페이지 로드 완료: {page_url}", flush=True)
         except Exception as e:
             print(f"목록 페이지 로드 오류: {str(e)}")
             break
@@ -110,7 +113,7 @@ def dcinside_realtimebest_crawl(url: str = 'https://gall.dcinside.com/board/list
         skipped_views_posts = 0
         
         posts = board.find_all("tr", class_="ub-content")
-        print(f"페이지에서 발견된 게시물 수: {len(posts)}")
+        print(f"페이지에서 발견된 게시물 수: {len(posts)}", flush=True)
         
         for post in posts:
             # 날짜 확인 - 오늘 날짜인지 체크
@@ -199,15 +202,15 @@ def dcinside_realtimebest_crawl(url: str = 'https://gall.dcinside.com/board/list
                 "Recommend": recommend_num
             })
         
-        print(f"날짜 필터링으로 건너뛴 게시물: {skipped_date_posts}")
-        print(f"조회수 필터링으로 건너뛴 게시물: {skipped_views_posts}")
+        print(f"날짜 필터링으로 건너뛴 게시물: {skipped_date_posts}", flush=True)
+        print(f"조회수 필터링으로 건너뛴 게시물: {skipped_views_posts}", flush=True)
         
         # 오늘 날짜 게시물이 없으면 카운터 증가
         if not today_posts_found:
             consecutive_empty_pages += 1
-            print(f"페이지 {page}에서 오늘 날짜 게시글을 찾을 수 없습니다. ({consecutive_empty_pages}/{max_consecutive_empty})")
+            print(f"페이지 {page}에서 오늘 날짜 게시글을 찾을 수 없습니다. ({consecutive_empty_pages}/{max_consecutive_empty})", flush=True)
             if consecutive_empty_pages >= max_consecutive_empty:
-                print(f"연속 {max_consecutive_empty}페이지 동안 오늘 날짜 게시글을 찾을 수 없어 크롤링을 종료합니다.")
+                print(f"연속 {max_consecutive_empty}페이지 동안 오늘 날짜 게시글을 찾을 수 없어 크롤링을 종료합니다.", flush=True)
                 break
         else:
             consecutive_empty_pages = 0  # 오늘 날짜 게시물 찾으면 카운터 초기화
@@ -251,14 +254,14 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = dcinside_realtimebest_crawl(delay=5, min_views=30000)   # 조회수 10000 이상으로 설정
+    df = dcinside_realtimebest_crawl(delay=5, min_views=10000)   # 조회수 10000 이상으로 설정
     print(f"디시 실시간베스트 갤러리 : \n{df}")
     if df is not None:
         available_cols = [col for col in ["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
         
         # 오늘 날짜 폴더에 CSV 파일 저장
-        file_name = f"dcinside_bestboard_{today}.csv"
+        file_name = f"dcinside_realtimebestboard_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"데이터가 '{file_path}' 파일로 저장되었습니다.")

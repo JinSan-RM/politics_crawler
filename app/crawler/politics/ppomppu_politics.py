@@ -207,7 +207,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = ppomppu_politics_crawl(delay=5, min_views=1500)  # 최소 조회수 1000으로 설정
+    df = ppomppu_politics_crawl(delay=5, min_views=500)  # 최소 조회수 1000으로 설정
     if df is not None:
         print(df[["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"]])
         

@@ -247,7 +247,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = mlbpark_politics_crawl(delay=5, min_views=300)  # 조회수 300 이상으로 설정
+    df = mlbpark_politics_crawl(delay=5, min_views=500)  # 조회수 300 이상으로 설정
     if df is not None:
         available_cols = [col for col in ["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

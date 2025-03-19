@@ -97,7 +97,7 @@ def clean_text(text):
 
 def ruliweb_humor_crawl(url: str = 'https://bbs.ruliweb.com/best/humor',
                         delay: int = 5,
-                        min_views: int = 10000,
+                        min_views: int = 100,
                         max_consecutive_not_today=3):
     today = datetime.now().date()
     data = []
@@ -223,7 +223,7 @@ def ruliweb_humor_crawl(url: str = 'https://bbs.ruliweb.com/best/humor',
                 post_links_set.add(link)
                 
                 data.append({
-                    "Post_ID": post_id,
+                    "Post ID": post_id,
                     "Community": "6",
                     "Category": category,
                     "Title": title,
@@ -272,7 +272,7 @@ if __name__ == "__main__":
     
     df = ruliweb_humor_crawl(
         delay=5, 
-        min_views=10000, 
+        min_views=100, 
         max_consecutive_not_today=3  # 오늘 날짜가 아닌 게시글이 연속 3개 이상이면 종료
     )
     
@@ -281,7 +281,7 @@ if __name__ == "__main__":
         print(df[available_cols])
         
         # 오늘 날짜 폴더에 CSV 파일 저장
-        file_name = f"ruliweb_humor_{today}.csv"
+        file_name = f"ruliweb_funnyboard_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"[크롤링 완료] 데이터 저장 경로: {file_path}")

@@ -236,7 +236,7 @@ def inven_board_crawl(url='https://www.inven.co.kr/board/webzine/2097', delay=2,
                 post_id = link.split('/')[-1].split('?')[0] if '/' in link else "N/A"
                 
                 data.append({
-                    'Post_ID': post_id,
+                    'Post ID': post_id,
                     "Community": "10",
                     'Category': category,
                     'Title': title,

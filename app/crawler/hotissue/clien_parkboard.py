@@ -19,8 +19,31 @@ def get_headers():
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3",
         "Connection": "keep-alive",
-        "Referer": "https://www.82cook.com/"
+        "Referer": "https://www.clien.net/"
     }
+
+# URL에서 게시글 ID 추출 함수
+def extract_post_id(url):
+    match = re.search(r'/(\d+)', url)
+    if match:
+        return match.group(1)
+    return None
+
+# 조회수 변환 함수
+def parse_views(views_text):
+    """조회수를 문자열에서 숫자로 변환 ('k' 단위 포함)"""
+    views_text = views_text.strip().replace(',', '')
+    if 'k' in views_text.lower():
+        try:
+            views_num = float(views_text.lower().replace('k', '')) * 1000
+            return int(views_num)
+        except ValueError:
+            return 0
+    else:
+        try:
+            return int(views_text)
+        except ValueError:
+            return 0
 
 # 게시글 내용 크롤링 (정적 방식)
 def get_post_content(post_url):
@@ -31,7 +54,7 @@ def get_post_content(post_url):
         response.encoding = 'utf-8'
         soup = Soup(response.text, "html.parser")
 
-        content_div = soup.find("div", id="articleBody")
+        content_div = soup.find("div", class_="post_article")
         if not content_div:
             print(f"내용 영역을 찾을 수 없습니다: {post_url}")
             return {"text": "", "images": []}
@@ -39,13 +62,13 @@ def get_post_content(post_url):
         text_content = content_div.get_text(separator="\n", strip=True)
 
         image_urls = []
-        for img in content_div.find_all("img"):
+        for img in content_div.find_all("img", class_="fr-dib"):
             src = img.get("src")
             if src:
                 if src.startswith("//"):
                     src = f"https:{src}"
                 elif not src.startswith("http"):
-                    src = f"https://www.82cook.com{src}"
+                    src = f"https://www.clien.net{src}"
                 image_urls.append(src)
 
         return {"text": text_content, "images": image_urls}
@@ -53,18 +76,18 @@ def get_post_content(post_url):
         print(f"게시글 크롤링 실패: {post_url} - {e}")
         return {"text": "", "images": []}
 
-# 82cook 자유게시판 크롤링 메인 함수
-def cook82_freeboard_crawl(min_views=1000):
-    base_url = 'https://www.82cook.com/entiz/enti.php?bn=15'
+# 클리앙 게시판 크롤링 메인 함수
+def clien_park_crawl(min_views=2000):
+    base_url = 'https://www.clien.net/service/board/park'
     today = datetime.now().date()
     data = []
-    page = 1
+    page = 0  # 클리앙은 페이지 0부터 시작
     no_today_count = 0  # 오늘 날짜가 없는 페이지 연속 카운트
     max_no_today = 3    # 오늘 날짜 없는 페이지가 3번 연속이면 종료
 
     while no_today_count < max_no_today:
-        page_url = f"{base_url}&page={page}"
-        print(f"페이지 {page} 크롤링 중: {page_url}")
+        page_url = base_url if page == 0 else f"{base_url}?&od=T31&category=0&po={page}"
+        print(f"페이지 {page + 1} 크롤링 중: {page_url}")
 
         try:
             headers = get_headers()
@@ -72,14 +95,14 @@ def cook82_freeboard_crawl(min_views=1000):
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = Soup(response.text, "html.parser")
-            board_table = soup.find("table")
-            if not board_table:
-                print("게시판 테이블을 찾을 수 없습니다.")
+            list_content = soup.find("div", class_="list_content")
+            if not list_content:
+                print("list_content를 찾을 수 없습니다.")
                 no_today_count += 1
                 page += 1
                 continue
 
-            posts = board_table.find("tbody").find_all("tr")
+            posts = list_content.find_all("div", class_="list_item")
             if not posts:
                 print("게시물이 없습니다.")
                 no_today_count += 1
@@ -88,55 +111,59 @@ def cook82_freeboard_crawl(min_views=1000):
 
             has_today_post = False  # 페이지에 오늘 날짜 게시글 존재 여부
             for post in posts:
-                if post.get("class") and "noticeList" in post.get("class"):  # 공지글 제외
+                post_id = post.get("data-board-sn")
+                if not post_id:
                     continue
 
-                post_id_elem = post.find("td", class_="numbers").find("a", class_="photolink")
-                post_id = post_id_elem.text.strip() if post_id_elem else ""
+                title_elem = post.find("span", class_="subject_fixed")
+                title = title_elem["title"].strip() if title_elem else ""
+                link_elem = post.find("a", class_="list_subject")
+                link = f"https://www.clien.net{link_elem['href']}" if link_elem else ""
 
-                title_elem = post.find("td", class_="title").find("a")
-                title = title_elem.text.strip() if title_elem else ""
-                link = f"https://www.82cook.com/entiz/{title_elem['href']}" if title_elem else ""
-
-                writer_elem = post.find("td", class_="user_function")
+                writer_elem = post.find("span", class_="nickname")
                 writer = writer_elem.text.strip() if writer_elem else ""
 
-                date_elem = post.find("td", class_="regdate")
-                date_str = date_elem.text.strip() if date_elem else ""
-                if ":" in date_str and len(date_str.split()) == 1:  # 시간만 있는 경우 오늘 날짜 추가
-                    date_str = f"{today} {date_str}"
+                views_elem = post.find("div", class_="list_hit")
+                views_text = views_elem.find("span", class_="hit").text.strip() if views_elem else "0"
+                views = parse_views(views_text)
+                if views < min_views:
+                    continue
+
+                time_elem = post.find("div", class_="list_time")
+                time_str = time_elem.find("span", class_="time").text.strip() if time_elem else ""
+                timestamp_elem = time_elem.find("span", class_="timestamp") if time_elem else None
+                date_str = timestamp_elem.text.strip() if timestamp_elem else f"{today} {time_str}"
 
                 # 날짜가 오늘인지 확인
                 post_date = date_str.split()[0] if " " in date_str else date_str
                 if post_date == str(today):
                     has_today_post = True
 
-                views_elem = post.find_all("td", class_="numbers")[-1]
-                views_text = views_elem.text.strip().replace(',', '')
-                views = int(views_text) if views_text.isdigit() else 0
-                if views < min_views:
-                    continue
+                like_elem = post.find("div", class_="list_symph")
+                like_text = like_elem.find("span").text.strip() if like_elem else "0"
+                recommend = int(like_text) if like_text.isdigit() else 0
 
-                comment_elem = post.find("em")
-                comment_count = int(comment_elem.text.strip()) if comment_elem and comment_elem.text.strip().isdigit() else 0
+                comment_elem = post.find("span", class_="rSymph05")
+                comment_count = int(comment_elem.text.strip()) if comment_elem else 0
 
                 content_data = get_post_content(link)
 
                 data.append({
                     "Post ID": post_id,
-                    "Community": "8",
-                    "Category": "자유게시판",
+                    "Community": "4",
+                    "Category": "park",
                     "Title": title,
                     "Link": link,
                     "Writer": writer,
                     "Date": date_str,
+                    "Recommend": recommend,
                     "Views": views,
                     "Comments": comment_count,
                     "Content": content_data["text"],
                     "Images": content_data["images"]
                 })
 
-                print(f"게시물 수집 완료: {title} (ID: {post_id})")
+                print(f"게시물 수집 완료: {title} (ID: {post_id}, Views: {views})")
 
             # 오늘 날짜 게시글이 없으면 카운트 증가
             if not has_today_post:
@@ -171,12 +198,12 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = cook82_freeboard_crawl(min_views=500)
+    df = clien_park_crawl(min_views=2000)
     if df is not None:
-        available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Comments", "Content", "Images"] if col in df.columns]
+        available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Comments", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
         
-        file_name = f"82cook_freeboard_{today}.csv"
+        file_name = f"clien_parkboard_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"데이터가 '{file_path}' 파일로 저장되었습니다.")

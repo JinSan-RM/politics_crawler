@@ -265,7 +265,7 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
         df = pd.DataFrame(data)
         df = df.sort_values(by="Date", ascending=False)
         return df
-    return Nonex
+    return None
 
 if __name__ == "__main__":
     # 오늘 날짜 폴더 경로 설정
@@ -280,7 +280,7 @@ if __name__ == "__main__":
     
     df = ruliweb_society_board_crawl(
         delay=5, 
-        min_views=1000, 
+        min_views=400, 
         max_consecutive_not_today=3  # 오늘 날짜가 아닌 게시글이 연속 3개 이상이면 종료
     )
     

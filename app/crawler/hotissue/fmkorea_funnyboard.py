@@ -38,18 +38,10 @@ def is_valid_post_url(url):
         return False
     return url.startswith("http")
 
-# 페이지 존재 여부 확인 - proxy 제거
-def check_page_exists(url, headers):
-    try:
-        response = requests.get(url, headers=headers, timeout=10)
-        return response.status_code == 200
-    except Exception as e:
-        print(f"페이지 접근 오류: {e}")
-        return False
-
-# 개별 게시글 크롤링
+# 개별 게시글 크롤링 (내용 및 이미지, 내부 날짜 확인)
 def get_post_content(post_url, max_retries=2, timeout=10):
     if not is_valid_post_url(post_url):
+        print(f"유효하지 않은 URL 건너뜀: {post_url}")
         return {"text": "유효하지 않은 URL", "images": []}
 
     attempt = 0
@@ -58,13 +50,33 @@ def get_post_content(post_url, max_retries=2, timeout=10):
     while attempt < max_retries:
         try:
             headers = get_headers()
+            print(f"사용 중인 User-Agent: {headers['User-Agent'][:30]}...")
             response = requests.get(post_url, headers=headers, timeout=timeout)
             response.raise_for_status()
-            response.encoding = 'utf-8'  # 인코딩 명시
+            response.encoding = 'utf-8'
             
             soup = Soup(response.text, "html.parser")
-            content_div = soup.find("div", class_="xe_content")
+            # 게시글 상단 날짜 정보 확인 (예: DCInside 형식)
+            head_div = soup.find("div", class_="gallview_head")
+            if head_div:
+                date_elem = head_div.find("span", class_="gall_date")
+                if date_elem:
+                    date_text = date_elem.get("title", date_elem.text.strip())
+                    try:
+                        post_date = datetime.strptime(date_text, "%Y-%m-%d %H:%M:%S")
+                    except ValueError:
+                        print(f"날짜 포맷 파싱 오류: {date_text}")
+                        post_date = None
+                    # 만약 내부 게시글 날짜가 오늘이 아니라면
+                    if post_date and post_date.date() != datetime.now().date():
+                        print(f"게시글 내부 날짜({post_date.date()})가 오늘({datetime.now().date()})이 아님. 건너뜁니다.")
+                        return {"text": "오늘 날짜 게시글이 아님", "images": []}
+            else:
+                print("게시글 상단 날짜 정보를 찾을 수 없습니다.")
+                # 날짜 정보가 없으면 계속 진행 (원하는 경우 여기서 건너뛸 수 있음)
             
+            # FM코리아 게시글 내용 영역 (예시로 xe_content 사용)
+            content_div = soup.find("div", class_="xe_content")
             if not content_div:
                 return {"text": "내용을 찾을 수 없음", "images": []}
                 
@@ -87,40 +99,38 @@ def get_post_content(post_url, max_retries=2, timeout=10):
                 return {"text": f"로드 실패: {str(e)}", "images": []}
             time.sleep(random.uniform(1, 2))
 
-# 게시판 크롤링 함수 (전체 게시글 수집)
+# 게시판 크롤링 함수 (FM코리아 재미게시판)
 def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
-    # 정확한 URL 형식 사용
     base_url = 'https://www.fmkorea.com/humor'
     data = []
     page = 1
     
-    # 오늘 날짜 게시물을 찾지 못한 연속 페이지 수
     consecutive_empty_pages = 0
-    max_consecutive_empty = 3  # 연속 3페이지 동안 오늘 날짜 게시글을 찾을 수 없으면 종료
+    max_consecutive_empty = 5  # 연속 3페이지 동안 오늘 게시글 없으면 종료
     
-    # 중복 체크를 위한 집합
     processed_links = set()
 
     print(f"크롤링 시작: 최소 조회수 {min_views}, 최대 {max_pages}페이지")
     print(f"오늘 날짜: {datetime.now().date()}")
 
+    # 내부에서 post_content를 호출했을 때 오늘 날짜가 아닌 게시글의 연속 건수를 저장하는 변수
+    inside_not_today_count = 0
+
     while page <= max_pages:
-        # 페이지 URL 설정 - 올바른 URL 형식 사용
         if page == 1:
             page_url = base_url
         else:
             page_url = f"https://www.fmkorea.com/index.php?mid=humor&page={page}"
             
-        print(f"\n페이지 {page} 크롤링 중: {page_url}")
+        print(f"\n페이지 {page} 크롤링 중: {page_url}", flush=True)
 
         try:
             headers = get_headers()
+            print(f"사용 중인 User-Agent: {headers['User-Agent'][:30]}...")
             response = requests.get(page_url, headers=headers, timeout=10)
             response.raise_for_status()
             response.encoding = 'utf-8'
             soup = Soup(response.text, "html.parser")
-            
-            print(f"HTML 구조 확인: tbody 태그 존재 여부: {bool(soup.find('tbody'))}")
             
             tbody = soup.find("tbody")
             if not tbody:
@@ -129,7 +139,6 @@ def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
                 time.sleep(random.uniform(1, 2))
                 continue
 
-            # 게시글 목록 긁어오기
             posts = []
             today_posts_found = False
             skipped_posts = 0
@@ -138,73 +147,71 @@ def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
                 if "notice" in post.get("class", []):
                     continue
 
-                # 날짜 확인
                 date_elem = post.find("td", class_="time")
                 if not date_elem:
                     continue
-                    
                 date_str = date_elem.text.strip()
                 try:
-                    if ":" in date_str:  # 오늘 날짜
+                    if re.match(r'\d{4}-\d{2}-\d{2}', date_str):
+                        try:
+                            post_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M:%S")
+                        except ValueError:
+                            post_date = datetime.strptime(date_str, "%Y-%m-%d %H:%M")
+                    else:
                         post_date = datetime.strptime(f"{datetime.now().date()} {date_str}", "%Y-%m-%d %H:%M")
                         today_posts_found = True
-                    else:
-                        skipped_posts += 1
-                        continue  # 오늘 날짜가 아니면 제외
                 except ValueError:
+                    print(f"날짜 파싱 오류: {date_str}")
                     continue
-                    
-                # 조회수 확인
+
+                if post_date.date() != datetime.now().date():
+                    skipped_posts += 1
+                    continue
+                else:
+                    today_posts_found = True
+
                 views_elem = post.find("td", class_="m_no")
                 if not views_elem or not views_elem.text.strip().isdigit():
                     continue
-                    
                 views = int(views_elem.text.strip())
                 if views < min_views:
                     skipped_posts += 1
                     continue
-                
-                # 제목과 링크 추출
+
                 title_elem = post.find("td", class_="title")
                 if not title_elem or not title_elem.find("a"):
                     continue
-                    
                 link_elem = title_elem.find("a")
                 link = link_elem.get("href", "")
                 if not link:
                     continue
-                    
                 if not link.startswith("http"):
                     link = "https://www.fmkorea.com" + link
-                
                 if link in processed_links:
                     continue
-                    
+
                 post_num = link.split("/")[-1]
                 title = filter_korean_english(link_elem.text.strip())
-                
-                # 카테고리 추출
+
                 cate_elem = post.find("td", class_="cate")
                 category = ""
                 if cate_elem and cate_elem.find("a"):
                     category = filter_korean_english(cate_elem.find("a").text.strip())
-                
-                # 작성자 추출
+
                 writer_elem = post.find("td", class_="author")
                 writer = filter_korean_english(writer_elem.text.strip()) if writer_elem else ""
-                
-                # 추천수 추출
+
                 recommend_elem = post.find_all("td", class_="m_no")
                 recommend = 0
                 if len(recommend_elem) > 1:
                     recommend_text = recommend_elem[-1].text.strip()
                     if recommend_text.isdigit():
                         recommend = int(recommend_text)
-                
+
                 print(f"조회수 {views}의 게시물 발견: {title}")
                 
                 posts.append({
-                    "Post_ID": post_num,
+                    "Post ID": post_num,
                     "Community": "11",
                     "Category": category,
                     "Title": title,
@@ -221,23 +228,38 @@ def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
             
             if not today_posts_found or len(posts) == 0:
                 consecutive_empty_pages += 1
-                print(f"페이지 {page}에서 오늘 날짜 게시글을 찾을 수 없습니다. ({consecutive_empty_pages}/{max_consecutive_empty})")
+                print(f"페이지 {page}에서 오늘 날짜 게시글을 찾을 수 없습니다. ({consecutive_empty_pages}/{max_consecutive_empty})", flush=True)
                 if consecutive_empty_pages >= max_consecutive_empty:
-                    print(f"연속 {max_consecutive_empty}페이지 동안 오늘 날짜 게시글을 찾을 수 없어 크롤링을 종료합니다.")
+                    print(f"연속 {max_consecutive_empty}페이지 동안 오늘 날짜 게시글을 찾을 수 없어 크롤링을 종료합니다.", flush=True)
                     break
             else:
-                consecutive_empty_pages = 0  # 오늘 날짜 게시글 찾으면 카운터 초기화
-                print(f"페이지 {page}에서 오늘 날짜 게시글을 발견했습니다. 연속 카운터 초기화.")
+                consecutive_empty_pages = 0
+                print(f"페이지 {page}에서 오늘 날짜 게시글을 발견했습니다. 연속 카운터 초기화.", flush=True)
 
-            # 수집된 게시글 내용 가져오기
+            # 필터링된 게시글 내용 가져오기
             for post in posts:
                 content_data = get_post_content(post["Link"])
+                # 내부 크롤링 결과가 '오늘 날짜 게시글이 아님'이면 내부 카운터 증가
+                if content_data["text"] == "오늘 날짜 게시글이 아님":
+                    inside_not_today_count += 1
+                    print(f"내부 날짜 검사: {post['Title']} - 오늘 날짜 아님 (연속 {inside_not_today_count}회)")
+                    if inside_not_today_count >= 3:
+                        print("내부에서 오늘 날짜 게시글이 아닌 게시물이 연속 3개 발견되어 크롤링 종료합니다.", flush=True)
+                        break
+                    continue  # 이 게시글은 데이터에 추가하지 않음
+                else:
+                    # 유효한 게시글이면 내부 카운터 초기화
+                    inside_not_today_count = 0
+
                 post["Content"] = content_data["text"]
                 post["Images"] = content_data["images"]
                 data.append(post)
                 processed_links.add(post["Link"])
                 print(f"게시글 내용 크롤링 완료: {post['Title']}")
                 time.sleep(random.uniform(1, 2))
+
+            if inside_not_today_count >= 5:
+                break
 
             page += 1
             time.sleep(random.uniform(3, 7))
@@ -255,7 +277,6 @@ def fmkorea_funnyboard_crawl(min_views=10000, max_pages=10):
         return df
     return None
 
-
 if __name__ == "__main__":
     base_data_folder = os.path.join('/code/data')
     today = datetime.now().strftime('%Y%m%d')
@@ -265,7 +286,7 @@ if __name__ == "__main__":
         os.makedirs(today_folder, exist_ok=True)
         print(f"'{today_folder}' 폴더를 생성했습니다.")
     
-    df = fmkorea_funnyboard_crawl(min_views=10000)
+    df = fmkorea_funnyboard_crawl(min_views=500, max_pages=30)
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

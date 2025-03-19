@@ -93,7 +93,7 @@ def get_post_content(post_url, delay=5):
 # 게시판 크롤링 (오늘 날짜만)
 def ppomppu_politics_crawl(url: str = 'https://www.ppomppu.co.kr/zboard/zboard.php?id=issue',
                          delay: int = 5,
-                         min_views: int = 1500):  # 최소 조회수 기본값 1500으로 설정
+                         min_views: int = 300):  # 최소 조회수 기본값 1500으로 설정
     today = datetime.now().date()
     data = []
     page = 1
@@ -215,7 +215,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = ppomppu_politics_crawl(delay=5, min_views=1500)  # 최소 조회수 1500으로 설정
+    df = ppomppu_politics_crawl(delay=5, min_views=300)  # 최소 조회수 1500으로 설정
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

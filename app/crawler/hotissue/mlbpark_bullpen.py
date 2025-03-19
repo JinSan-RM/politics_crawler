@@ -89,7 +89,7 @@ def get_next_page_url(page_num):
 
 def mlbpark_board_crawl(url: str = 'https://mlbpark.donga.com/mp/b.php?p=1&m=list&b=bullpen&query=&select=&subquery=&subselect=&user=',
                         delay: int = 5,
-                        min_views: int = 300):  # 조회수 300 이상으로 설정
+                        min_views: int = 500):  # 조회수 300 이상으로 설정
     today = datetime.now().date()
     data = []
     
@@ -248,7 +248,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = mlbpark_board_crawl(delay=5, min_views=300)  # 조회수 300 이상으로 설정
+    df = mlbpark_board_crawl(delay=5, min_views=500)  # 조회수 300 이상으로 설정
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

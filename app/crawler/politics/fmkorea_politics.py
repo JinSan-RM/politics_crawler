@@ -211,7 +211,7 @@ def fmkorea_politics_crawl(min_views=1000, max_pages=10):
                 print(f"조회수 {views}의 게시물 발견: {title}")
                 
                 posts.append({
-                    "Post_ID": post_num,
+                    "Post ID": post_num,
                     "Community": "11p",
                     "Category": category,
                     "Title": title,
@@ -272,7 +272,7 @@ if __name__ == "__main__":
         os.makedirs(today_folder, exist_ok=True)
         print(f"'{today_folder}' 폴더를 생성했습니다.")
     
-    df = fmkorea_politics_crawl(min_views=1000)
+    df = fmkorea_politics_crawl(min_views=200)
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
