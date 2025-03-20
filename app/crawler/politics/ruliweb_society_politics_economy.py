@@ -20,6 +20,7 @@ def get_headers():
         "User-Agent": random.choice(user_agents),
         "Accept": "text/html,application/xhtml+xml,application/xml;q=0.9,image/webp,*/*;q=0.8",
         "Accept-Language": "ko-KR,ko;q=0.8,en-US;q=0.5,en;q=0.3",
+        "Accept-Encoding": "gzip, deflate, br",
         "Connection": "keep-alive",
         "Referer": "https://www.ppomppu.co.kr/",
         "Cache-Control": "no-cache",
@@ -34,19 +35,20 @@ def is_valid_post_url(url):
     return url.startswith("http")
 
 # 게시글 내용 크롤링 (BeautifulSoup만 사용)
-def get_post_content(post_url, delay=5):
+def get_post_content(post_url, delay=2):  # delay 줄임
     if not is_valid_post_url(post_url):
         print(f"유효하지 않은 URL 건너뜀: {post_url}")
         return {"text": "유효하지 않은 URL", "images": [], "actual_date": None}
 
+    start_time = time.time()
     try:
         headers = get_headers()
         response = requests.get(post_url, headers=headers, timeout=10)
         response.encoding = 'utf-8'
         soup = Soup(response.text, "html.parser")
-        print(f"크롤링 중: {post_url}")
+        print(f"크롤링 중: {post_url}, 응답 시간: {time.time() - start_time:.2f}초")
     except Exception as e:
-        print(f"게시글 페이지 로드 오류: {post_url} - {str(e)}")
+        print(f"게시글 페이지 로드 오류: {post_url} - {str(e)}, 소요 시간: {time.time() - start_time:.2f}초")
         return {"text": f"로드 오류: {str(e)}", "images": [], "actual_date": None}
 
     # 게시글 실제 날짜 확인
@@ -73,7 +75,7 @@ def get_post_content(post_url, delay=5):
 
     text_content = content_div.get_text(separator="\n", strip=True)
     print(f"추출된 텍스트 (처음 100자): {text_content[:100]}")
-    
+
     # 이미지 URL 추출
     image_urls = []
     for img in content_div.find_all("img"):
@@ -87,6 +89,7 @@ def get_post_content(post_url, delay=5):
     print(f"추출된 이미지 URL: {len(image_urls)}개")
 
     time.sleep(delay)
+    print(f"게시글 크롤링 완료: {post_url}, 총 소요 시간: {time.time() - start_time:.2f}초")
     return {"text": text_content, "images": image_urls, "actual_date": actual_date}
 
 def clean_text(text):
@@ -96,9 +99,11 @@ def clean_text(text):
     return text
 
 def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/board/300018',
-                        delay: int = 5,
-                        min_views: int = 1000,
-                        max_consecutive_not_today=3):
+                               delay: int = 2,  # delay 줄임
+                               min_views: int = 100,
+                               max_consecutive_not_today=3,
+                               max_pages=5):  # 최대 페이지 제한 추가
+    start_time = time.time()
     today = datetime.now().date()
     data = []
     
@@ -112,21 +117,28 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
     # 페이지 번호 (1부터 시작)
     page_num = 1
     
-    print(f"\n[크롤링 시작] 오늘 날짜: {today}, 최소 조회수: {min_views}")
-    print(f"[설정] 연속 오늘 날짜 아닌 게시글 제한: {max_consecutive_not_today}개")
-    
-    while True:
+    print(f"\n[크롤링 시작] 오늘 날짜: {today}, 최소 조회수: {min_views}, 시작 시간: {datetime.fromtimestamp(start_time)}")
+    print(f"[설정] 연속 오늘 날짜 아닌 게시글 제한: {max_consecutive_not_today}개, 최대 페이지: {max_pages}")
+
+    while page_num <= max_pages:
+        # 총 실행 시간 확인
+        elapsed_time = time.time() - start_time
+        if elapsed_time > 1100:  # 1100초(18분 20초) 초과 시 종료
+            print(f"[타임아웃 방지] 총 실행 시간 {elapsed_time:.2f}초 초과, 크롤링 종료")
+            break
+
         page_url = f"{url}?page={page_num}" if page_num > 1 else url
-        print(f"\n[페이지 접근] 페이지 {page_num}: {page_url}")
+        print(f"\n[페이지 접근] 페이지 {page_num}: {page_url}, 경과 시간: {elapsed_time:.2f}초")
         
+        page_start_time = time.time()
         try:
             headers = get_headers()
             response = requests.get(page_url, headers=headers, timeout=10)
             response.encoding = 'utf-8'
             soup = Soup(response.text, "html.parser")
-            print(f"[페이지 로드 성공] 상태 코드: {response.status_code}")
+            print(f"[페이지 로드 성공] 상태 코드: {response.status_code}, 소요 시간: {time.time() - page_start_time:.2f}초")
         except Exception as e:
-            print(f"[페이지 로드 오류]: {str(e)}")
+            print(f"[페이지 로드 오류]: {str(e)}, 소요 시간: {time.time() - page_start_time:.2f}초")
             break
 
         # 게시글 목록 찾기 (루리웹 사회정치경제 게시판 구조)
@@ -139,6 +151,8 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
         print(f"[게시글 목록] 발견된 총 게시글 수: {len(all_posts)}개")
         
         for post in all_posts:
+            # 게시글별 소요 시간 확인
+            post_start_time = time.time()
             try:
                 # 공지사항 제외
                 if "notice" in post.get("class", []) or "list_inner" in post.get("class", []) or "notice inside" in post.get("class", []):
@@ -243,12 +257,12 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
                     "Content": content_data["text"],
                     "Images": content_data["images"]
                 })
-                print(f"[게시글 추가됨] 제목: {title}, 조회수: {views}, 날짜: {actual_date}")
+                print(f"[게시글 추가됨] 제목: {title}, 조회수: {views}, 날짜: {actual_date}, 소요 시간: {time.time() - post_start_time:.2f}초")
                 
-                time.sleep(random.uniform(1, 3))
+                time.sleep(random.uniform(1, 2))  # 지연 시간 줄임
                 
             except Exception as e:
-                print(f"[데이터 추출 중 오류 발생]: {e}")
+                print(f"[데이터 추출 중 오류 발생]: {e}, 소요 시간: {time.time() - post_start_time:.2f}초")
                 continue
         
         # 연속 오늘 날짜 아닌 게시글 제한 초과 확인
@@ -257,9 +271,10 @@ def ruliweb_society_board_crawl(url: str = 'https://bbs.ruliweb.com/community/bo
             break
         
         page_num += 1
-        time.sleep(random.uniform(2, 5))
+        print(f"[페이지 완료] 페이지 {page_num-1} 완료, 총 경과 시간: {time.time() - start_time:.2f}초")
+        time.sleep(random.uniform(2, 4))  # 페이지 간 지연 시간 줄임
 
-    print(f"\n[크롤링 완료] 총 수집된 게시글: {len(data)}개")
+    print(f"\n[크롤링 완료] 총 수집된 게시글: {len(data)}개, 총 소요 시간: {time.time() - start_time:.2f}초")
     
     if data:
         df = pd.DataFrame(data)
@@ -279,9 +294,10 @@ if __name__ == "__main__":
         print(f"'{today_folder}' 폴더를 생성했습니다.")
     
     df = ruliweb_society_board_crawl(
-        delay=5, 
-        min_views=400, 
-        max_consecutive_not_today=3  # 오늘 날짜가 아닌 게시글이 연속 3개 이상이면 종료
+        delay=2,  # delay 줄임
+        min_views=100,
+        max_consecutive_not_today=3,
+        max_pages=5  # 최대 페이지 제한 추가
     )
     
     if df is not None and not df.empty:
@@ -289,7 +305,7 @@ if __name__ == "__main__":
         print(df[available_cols])
         
         # 오늘 날짜 폴더에 CSV 파일 저장
-        file_name = f"ruliweb_society_politics_{today}.csv"
+        file_name = f"ruliweb_society_politics_economy_{today}.csv"
         file_path = os.path.join(today_folder, file_name)
         df.to_csv(file_path, index=False, encoding="utf-8-sig")
         print(f"[크롤링 완료] 데이터 저장 경로: {file_path}")

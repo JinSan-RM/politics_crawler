@@ -236,7 +236,7 @@ if __name__ == "__main__":
     df = dcinside_politics_crawl(delay=5, min_views=200)  # 최소 조회수 1000으로 설정
     if df is not None:
         print(df[["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"]])
-        
+    
         # 오늘 날짜 폴더에 CSV 파일 저장
         file_name = f"dcinside_politics_{today}.csv"
         file_path = os.path.join(today_folder, file_name)

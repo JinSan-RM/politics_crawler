@@ -21,27 +21,28 @@ logging.basicConfig(
 
 # 크롤러 목록 정의
 hotissue_crawlers = [
-    "/code/app/crawler/hotissue/bobaedream_bestboard.py",
     "/code/app/crawler/hotissue/dcinside_realtimebestboard.py",
-    "/code/app/crawler/hotissue/fmkorea_funnyboard.py",
-    "/code/app/crawler/hotissue/inven_openissue.py",
-    "/code/app/crawler/hotissue/mlbpark_bullpen.py",
-    "/code/app/crawler/hotissue/ppomppu_freeboard.py",
-    "/code/app/crawler/hotissue/ruliweb_funnyboard.py",
-    "/code/app/crawler/hotissue/82cook_freeboard.py",
+    "/code/app/crawler/hotissue/theqoo_hotboard.py",
+    "/code/app/crawler/hotissue/instiz_issue.py",
     "/code/app/crawler/hotissue/clien_parkboard.py",
-    "/code/app/crawler/hotissue/instiz_issue.py"
+    "/code/app/crawler/hotissue/ppomppu_freeboard.py",
+    "/code/app/crawler/hotissue/bobaedream_bestboard.py",
+    "/code/app/crawler/hotissue/82cook_freeboard.py",
+    "/code/app/crawler/hotissue/mlbpark_bullpen.py",
+    "/code/app/crawler/hotissue/inven_openissue.py",
+    "/code/app/crawler/hotissue/fmkorea_funnyboard.py"
 ]
+    # "/code/app/crawler/hotissue/ruliweb_funnyboard.py",
 
 politics_crawlers = [
-    "/code/app/crawler/politics/bobaedream_politics.py",
     "/code/app/crawler/politics/dcinside_peoplepower.py",
     "/code/app/crawler/politics/dcinside_politics.py",
-    "/code/app/crawler/politics/fmkorea_politics.py",
-    "/code/app/crawler/politics/mlbpark_politics.py",
     "/code/app/crawler/politics/ppomppu_politics.py",
     "/code/app/crawler/politics/ruliweb_politics.py",
-    "/code/app/crawler/politics/ruliweb_society_politics_ecomomy.py"
+    "/code/app/crawler/politics/ruliweb_society_politics_economy.py",
+    "/code/app/crawler/politics/bobaedream_politics.py",
+    "/code/app/crawler/politics/mlbpark_politics.py",
+    "/code/app/crawler/politics/fmkorea_politics.py",
 ]
 
 def run_crawler(script_path, timeout_seconds=1200):  # 기본 5분(300초) 타임아웃
@@ -140,6 +141,7 @@ def run_all_crawlers():
 
     for crawler in results["politics"]["success_list"]:
         try:
+            import pandas as pd
             base_name = os.path.basename(crawler)
             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
             base_data_folder = '/code/data'
@@ -299,7 +301,8 @@ def insert_to_db(data, is_politics=True):
             user=os.environ.get('DB_USER'),
             password=os.environ.get('DB_PASSWORD'),
             database=os.environ.get('DB_NAME'),
-            connection_timeout=10
+            connection_timeout=10,
+            use_pure=True  # 순수 Python 구현 사용
         )
         cursor = conn.cursor()
         
@@ -341,8 +344,8 @@ def insert_to_db(data, is_politics=True):
             title = str(processed_item.get('Title', '')) if processed_item.get('Title') is not None else ''
             link = str(processed_item.get('Link', '')) if processed_item.get('Link') is not None else ''
             writer = str(processed_item.get('Writer', '')) if processed_item.get('Writer') is not None else ''
-            views = int(processed_item.get('Views', 0)) if processed_item.get('Views') is not None else 0
-            recommend = int(processed_item.get('Recommend', 0)) if processed_item.get('Recommend') is not None else 0
+            views = str(processed_item.get('Views', 0)) if processed_item.get('Views') is not None else '0'  # 문자열로 처리
+            recommend = str(processed_item.get('Recommend', 0)) if processed_item.get('Recommend') is not None else '0'  # 문자열로 처리
             content = str(processed_item.get('Content', '')) if processed_item.get('Content') is not None else ''
             
             images = processed_item.get('Images', [])
@@ -353,6 +356,21 @@ def insert_to_db(data, is_politics=True):
             else:
                 images_str = json.dumps(images, ensure_ascii=False)
             
+            logging.debug(f"DB 삽입/업데이트 데이터 준비:")
+            logging.debug(f"post_id: {post_id}, 타입: {type(post_id)}")
+            logging.debug(f"community: {community}, 타입: {type(community)}")
+            logging.debug(f"category: {category}, 타입: {type(category)}")
+            logging.debug(f"title: {title}, 타입: {type(title)}")
+            logging.debug(f"link: {link}, 타입: {type(link)}")
+            logging.debug(f"writer: {writer}, 타입: {type(writer)}")
+            logging.debug(f"reg_date_value: {reg_date_value}, 타입: {type(reg_date_value)}")
+            logging.debug(f"views: {views}, 타입: {type(views)}")
+            logging.debug(f"recommend: {recommend}, 타입: {type(recommend)}")
+            logging.debug(f"content: {content}, 타입: {type(content)}")
+            logging.debug(f"images_str: {images_str}, 타입: {type(images_str)}")
+            
+            print(f"DB에 넣을 데이터: {post_id}, {community}, {category}, {title}, {link}, {writer}, {views}, {recommend}")
+            # 중복 체크 기준 결정
             # 중복 체크 기준 결정
             use_title_writer = not post_id or post_id.strip() == ''
             if use_title_writer:
@@ -370,6 +388,8 @@ def insert_to_db(data, is_politics=True):
             if existing is None:
                 logging.debug(f"No existing record found. Inserting new record: {processed_item}")
                 insert_values = (post_id, community, category, title, link, writer, reg_date_value, views, recommend, content, images_str)
+                logging.debug(f"삽입 직전 insert_values: {insert_values}")
+                logging.debug(f"insert_values 타입: {[type(val) for val in insert_values]}")
                 insert_site_info(cursor, table_name, insert_values)
                 logging.debug(f"Successfully inserted new record - Title: {title}, Writer: {writer}")
             
@@ -378,10 +398,14 @@ def insert_to_db(data, is_politics=True):
                 logging.debug(f"Existing record found: (seq: {seq}, reg_date: {existing_reg_date}, views: {existing_views}, recommend: {existing_recommend}, content: {existing_content}, images: {existing_images})")
                 logging.debug(f"New record data: (reg_date: {reg_date_value}, views: {views}, recommend: {recommend}, content: {content}, images: {images_str})")
                 
+                # existing_views와 existing_recommend를 문자열로 처리
+                existing_views = str(existing_views) if existing_views is not None else '0'
+                existing_recommend = str(existing_recommend) if existing_recommend is not None else '0'
+                
                 is_identical = (
                     reg_date_value == existing_reg_date and
-                    str(views) == str(existing_views) and
-                    str(recommend) == str(existing_recommend) and
+                    views == existing_views and
+                    recommend == existing_recommend and
                     content == existing_content and
                     images_str == existing_images and
                     category == str(processed_item.get('Category', '')) and
@@ -396,6 +420,8 @@ def insert_to_db(data, is_politics=True):
                 else:
                     logging.debug(f"Records differ. Updating record with seq: {seq}")
                     update_values = (reg_date_value, views, recommend, content, images_str, seq)
+                    logging.debug(f"업데이트 직전 update_values: {update_values}")
+                    logging.debug(f"update_values 타입: {[type(val) for val in update_values]}")
                     update_site_info(cursor, table_name, update_values)
                     logging.debug(f"Successfully updated record - Title: {title}, Writer: {writer}")
             else:
@@ -412,7 +438,7 @@ def insert_to_db(data, is_politics=True):
             conn.rollback()
         return False
     except Exception as e:
-        logging.error(f"예상치 못한 오류: {str(e)}")
+        logging.error(f"예상치 못한 오류: {str(e)}", exc_info=True)
         if conn:
             conn.rollback()
         return False

@@ -198,7 +198,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = clien_park_crawl(min_views=2000)
+    df = clien_park_crawl(min_views=3000)
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Comments", "Content", "Images"] if col in df.columns]
         print(df[available_cols])

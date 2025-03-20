@@ -286,7 +286,7 @@ if __name__ == "__main__":
         os.makedirs(today_folder, exist_ok=True)
         print(f"'{today_folder}' 폴더를 생성했습니다.")
     
-    df = fmkorea_funnyboard_crawl(min_views=500, max_pages=30)
+    df = fmkorea_funnyboard_crawl(min_views=200, max_pages=30)
     if df is not None:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]
         print(df[available_cols])
