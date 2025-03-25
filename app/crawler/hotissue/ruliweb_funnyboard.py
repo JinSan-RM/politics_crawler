@@ -126,7 +126,7 @@ def ruliweb_humor_crawl(url: str = 'https://bbs.ruliweb.com/best/humor',
     while page_num <= max_pages:
         # 총 실행 시간 확인
         elapsed_time = time.time() - start_time
-        if elapsed_time > 1100:  # 1100초(18분 20초) 초과 시 종료
+        if elapsed_time > 1800:  # 1100초(18분 20초) 초과 시 종료
             print(f"[타임아웃 방지] 총 실행 시간 {elapsed_time:.2f}초 초과, 크롤링 종료")
             break
 

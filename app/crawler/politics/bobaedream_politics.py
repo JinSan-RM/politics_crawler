@@ -241,7 +241,7 @@ if __name__ == "__main__":
 
     df = bobaedream_politic_crawl(
         delay=2,
-        min_views=150,
+        min_views=50,
         max_pages_to_check=3
     )
     if df is not None and not df.empty:

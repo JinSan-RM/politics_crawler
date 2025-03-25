@@ -244,7 +244,7 @@ if __name__ == "__main__":
 
     df = ppomppu_freeboard_crawl(
         delay=2,
-        min_views=500,
+        min_views=2000,
         max_pages=10  # 최대 10페이지까지만 크롤링
     )
     if df is not None:

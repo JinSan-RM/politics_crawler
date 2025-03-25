@@ -352,7 +352,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = instiz_pt_crawl(min_views=1000)
+    df = instiz_pt_crawl(min_views=500)
     if df is not None and not df.empty:
         available_cols = [col for col in ["Post_ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Comments", "Content", "Images"] if col in df.columns]
         print(f"수집된 데이터 미리보기:")

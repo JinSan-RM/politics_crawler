@@ -254,7 +254,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = dcinside_realtimebest_crawl(delay=5, min_views=10000)   # 조회수 10000 이상으로 설정
+    df = dcinside_realtimebest_crawl(delay=5, min_views=7000)   # 조회수 10000 이상으로 설정
     print(f"디시 실시간베스트 갤러리 : \n{df}")
     if df is not None:
         available_cols = [col for col in ["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"] if col in df.columns]

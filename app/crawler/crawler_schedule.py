@@ -45,7 +45,7 @@ politics_crawlers = [
     "/code/app/crawler/politics/fmkorea_politics.py",
 ]
 
-def run_crawler(script_path, timeout_seconds=1200):  # 기본 5분(300초) 타임아웃
+def run_crawler(script_path, timeout_seconds=1800):  # 기본 5분(300초) 타임아웃
     """단일 크롤러 실행 및 결과 반환 (타임아웃 적용)"""
     try:
         logging.info(f"크롤러 실행 중: {script_path}")
@@ -135,7 +135,7 @@ def run_all_crawlers():
                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
                 data = df.to_dict('records')
                 insert_to_db(data, is_politics=False)
-                logging.info(f"핫이슈 데이터 삽입 완료: {csv_path}")
+                logging.info(f"핫이슈 데이터 삽입 완료: {crawler}{csv_path}")
         except Exception as e:
             logging.error(f"핫이슈 데이터 삽입 중 오류 발생: {str(e)}")
 
@@ -152,90 +152,10 @@ def run_all_crawlers():
                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
                 data = df.to_dict('records')
                 insert_to_db(data, is_politics=True)
-                logging.info(f"정치 데이터 삽입 완료: {csv_path}")
+                logging.info(f"정치 데이터 삽입 완료: {crawler} {csv_path}")
         except Exception as e:
             logging.error(f"정치 데이터 삽입 중 오류 발생: {str(e)}")
 
-# def run_all_crawlers():
-#     """모든 크롤러 순차적으로 실행"""
-#     logging.info("=== 크롤링 작업 시작 ===")
-    
-#     # 실행 결과 추적
-#     results = {
-#         "hotissue": {"success": 0, "failed": 0, "failed_list": [], "success_list": []},
-#         "politics": {"success": 0, "failed": 0, "failed_list": [], "success_list": []}
-#     }
-    
-#     # 핫이슈 크롤러 실행
-#     logging.info("핫이슈 크롤러 실행 시작")
-#     for crawler in hotissue_crawlers:
-#         success = run_crawler(crawler)
-#         if success:
-#             results["hotissue"]["success"] += 1
-#             results["hotissue"]["success_list"].append(crawler)
-#         else:
-#             results["hotissue"]["failed"] += 1
-#             results["hotissue"]["failed_list"].append(crawler)
-#         time.sleep(30)  # 크롤러 간 30초 간격
-    
-#     # 정치 크롤러 실행
-#     logging.info("정치 크롤러 실행 시작")
-#     for crawler in politics_crawlers:
-#         success = run_crawler(crawler)
-#         if success:
-#             results["politics"]["success"] += 1
-#             results["politics"]["success_list"].append(crawler)
-#         else:
-#             results["politics"]["failed"] += 1
-#             results["politics"]["failed_list"].append(crawler)
-#         time.sleep(30)  # 크롤러 간 30초 간격
-    
-#     # 결과 요약
-#     logging.info("=== 크롤링 작업 완료 ===")
-#     logging.info(f"핫이슈: 성공 {results['hotissue']['success']}, 실패 {results['hotissue']['failed']}")
-#     logging.info(f"정치: 성공 {results['politics']['success']}, 실패 {results['politics']['failed']}")
-    
-#     if results["hotissue"]["failed"] > 0:
-#         logging.info(f"실패한 핫이슈 크롤러: {', '.join(results['hotissue']['failed_list'])}")
-#     if results["politics"]["failed"] > 0:
-#         logging.info(f"실패한 정치 크롤러: {', '.join(results['politics']['failed_list'])}")
-    
-#     # 성공한 크롤러에 대해서만 데이터 삽입
-#     for crawler in results["hotissue"]["success_list"]:
-#         try:
-#             # CSV 파일 경로 수정 (절대 경로 사용)
-#             base_name = os.path.basename(crawler)
-#             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
-#             base_data_folder = '/code/data'  # Docker 환경의 절대 경로
-#             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
-#             csv_path = os.path.join(today_folder, csv_name)
-            
-#             if os.path.exists(csv_path):
-#                 import pandas as pd
-#                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
-#                 data = df.to_dict('records')
-#                 insert_to_db(data, is_politics=False)
-#                 logging.info(f"핫이슈 데이터 삽입 완료: {csv_path}")
-#         except Exception as e:
-#             logging.error(f"핫이슈 데이터 삽입 중 오류 발생: {str(e)}")
-
-#     for crawler in results["politics"]["success_list"]:
-#         try:
-#             # CSV 파일 경로 수정 (절대 경로 사용)
-#             base_name = os.path.basename(crawler)
-#             csv_name = base_name.replace('.py', f'_{datetime.now().strftime("%Y%m%d")}.csv')
-#             base_data_folder = '/code/data'  # Docker 환경의 절대 경로
-#             today_folder = os.path.join(base_data_folder, datetime.now().strftime('%Y%m%d'))
-#             csv_path = os.path.join(today_folder, csv_name)
-            
-#             if os.path.exists(csv_path):
-#                 import pandas as pd
-#                 df = pd.read_csv(csv_path, encoding='utf-8-sig')
-#                 data = df.to_dict('records')
-#                 insert_to_db(data, is_politics=True)
-#                 logging.info(f"정치 데이터 삽입 완료: {csv_path}")
-#         except Exception as e:
-#             logging.error(f"정치 데이터 삽입 중 오류 발생: {str(e)}")
 
 def check_crawler_files():
     """크롤러 파일이 존재하는지 확인"""
@@ -262,29 +182,29 @@ def select_site_info(cursor, table_name, key_values, use_title_writer=False):
     """게시글 중복 체크 (post_id와 community 기준, 또는 title과 writer 기준)"""
     if use_title_writer:
         query = f"SELECT seq, reg_date, views, recommend, content, images FROM {table_name} WHERE title = %s AND writer = %s"
-        logging.debug(f"Executing query (title, writer): {query} with values {key_values}")
+        # logging.debug(f"Executing query (title, writer): {query} with values {key_values}")
         cursor.execute(query, key_values)
     else:
         query = f"SELECT seq, reg_date, views, recommend, content, images FROM {table_name} WHERE post_id = %s AND community = %s"
-        logging.debug(f"Executing query (post_id, community): {query} with values {key_values}")
+        # logging.debug(f"Executing query (post_id, community): {query} with values {key_values}")
         cursor.execute(query, key_values)
     
     result = cursor.fetchone()
     if cursor.description:
         cursor.fetchall()  # 남은 결과 소비
-    logging.debug(f"Query result: {result}")
+    # logging.debug(f"Query result: {result}")
     return result  # (seq, reg_date, views, recommend, content, images) or None
 
 def insert_site_info(cursor, table_name, values):
     """새 게시글 삽입"""
     query = f"INSERT INTO {table_name} (post_id, community, category, title, link, writer, reg_date, views, recommend, content, images) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)"
-    logging.debug(f"Inserting new record with values: {values}")
+    # logging.debug(f"Inserting new record with values: {values}")
     cursor.execute(query, values)
 
 def update_site_info(cursor, table_name, values):
     """기존 게시글 업데이트"""
     query = f"UPDATE {table_name} SET reg_date = %s, views = %s, recommend = %s, content = %s, images = %s WHERE seq = %s"
-    logging.debug(f"Updating record with values: {values}")
+    # logging.debug(f"Updating record with values: {values}")
     cursor.execute(query, values)
 
 def insert_to_db(data, is_politics=True):
@@ -336,9 +256,9 @@ def insert_to_db(data, is_politics=True):
                 if match:
                     if not match.group(2):  # 숫자만 있고 p가 없는 경우
                         community += 'p'
-                        logging.debug(f"Community 값에 'p' 추가됨: {community}")
+                        # logging.debug(f"Community 값에 'p' 추가됨: {community}")
                 else:  # 숫자로 시작하지 않거나 올바르지 않은 형식인 경우
-                    logging.warning(f"Community 값이 올바르지 않음. 건너뜀: {community}")
+                    # logging.warning(f"Community 값이 올바르지 않음. 건너뜀: {community}")
                     continue
             category = str(processed_item.get('Category', '')) if processed_item.get('Category') is not None else ''
             title = str(processed_item.get('Title', '')) if processed_item.get('Title') is not None else ''
@@ -356,47 +276,47 @@ def insert_to_db(data, is_politics=True):
             else:
                 images_str = json.dumps(images, ensure_ascii=False)
             
-            logging.debug(f"DB 삽입/업데이트 데이터 준비:")
-            logging.debug(f"post_id: {post_id}, 타입: {type(post_id)}")
-            logging.debug(f"community: {community}, 타입: {type(community)}")
-            logging.debug(f"category: {category}, 타입: {type(category)}")
-            logging.debug(f"title: {title}, 타입: {type(title)}")
-            logging.debug(f"link: {link}, 타입: {type(link)}")
-            logging.debug(f"writer: {writer}, 타입: {type(writer)}")
-            logging.debug(f"reg_date_value: {reg_date_value}, 타입: {type(reg_date_value)}")
-            logging.debug(f"views: {views}, 타입: {type(views)}")
-            logging.debug(f"recommend: {recommend}, 타입: {type(recommend)}")
-            logging.debug(f"content: {content}, 타입: {type(content)}")
-            logging.debug(f"images_str: {images_str}, 타입: {type(images_str)}")
+            # logging.debug(f"DB 삽입/업데이트 데이터 준비:")
+            # logging.debug(f"post_id: {post_id}, 타입: {type(post_id)}")
+            # logging.debug(f"community: {community}, 타입: {type(community)}")
+            # logging.debug(f"category: {category}, 타입: {type(category)}")
+            # logging.debug(f"title: {title}, 타입: {type(title)}")
+            # logging.debug(f"link: {link}, 타입: {type(link)}")
+            # logging.debug(f"writer: {writer}, 타입: {type(writer)}")
+            # logging.debug(f"reg_date_value: {reg_date_value}, 타입: {type(reg_date_value)}")
+            # logging.debug(f"views: {views}, 타입: {type(views)}")
+            # logging.debug(f"recommend: {recommend}, 타입: {type(recommend)}")
+            # logging.debug(f"content: {content}, 타입: {type(content)}")
+            # logging.debug(f"images_str: {images_str}, 타입: {type(images_str)}")
             
-            print(f"DB에 넣을 데이터: {post_id}, {community}, {category}, {title}, {link}, {writer}, {views}, {recommend}")
+            # print(f"DB에 넣을 데이터: {post_id}, {community}, {category}, {title}, {link}, {writer}, {views}, {recommend}")
             # 중복 체크 기준 결정
             # 중복 체크 기준 결정
             use_title_writer = not post_id or post_id.strip() == ''
             if use_title_writer:
                 if not title or not writer:
-                    logging.warning(f"Title 또는 Writer가 비어 있음 - 삽입 건너뜀: {processed_item}")
+                    # logging.warning(f"Title 또는 Writer가 비어 있음 - 삽입 건너뜀: {processed_item}")
                     continue
                 key_values = (title, writer)
-                logging.debug(f"Checking for existing record with Title: {title}, Writer: {writer}")
+                # logging.debug(f"Checking for existing record with Title: {title}, Writer: {writer}")
             else:
                 key_values = (post_id, community)
-                logging.debug(f"Checking for existing record with Post ID: {post_id}, Community: {community}")
+                # logging.debug(f"Checking for existing record with Post ID: {post_id}, Community: {community}")
             
             existing = select_site_info(cursor, table_name, key_values, use_title_writer=use_title_writer)
             
             if existing is None:
-                logging.debug(f"No existing record found. Inserting new record: {processed_item}")
+                # logging.debug(f"No existing record found. Inserting new record: {processed_item}")
                 insert_values = (post_id, community, category, title, link, writer, reg_date_value, views, recommend, content, images_str)
-                logging.debug(f"삽입 직전 insert_values: {insert_values}")
-                logging.debug(f"insert_values 타입: {[type(val) for val in insert_values]}")
+                # logging.debug(f"삽입 직전 insert_values: {insert_values}")
+                # logging.debug(f"insert_values 타입: {[type(val) for val in insert_values]}")
                 insert_site_info(cursor, table_name, insert_values)
-                logging.debug(f"Successfully inserted new record - Title: {title}, Writer: {writer}")
+                # logging.debug(f"Successfully inserted new record - Title: {title}, Writer: {writer}")
             
             elif isinstance(existing, tuple) and len(existing) >= 6:
                 seq, existing_reg_date, existing_views, existing_recommend, existing_content, existing_images = existing
-                logging.debug(f"Existing record found: (seq: {seq}, reg_date: {existing_reg_date}, views: {existing_views}, recommend: {existing_recommend}, content: {existing_content}, images: {existing_images})")
-                logging.debug(f"New record data: (reg_date: {reg_date_value}, views: {views}, recommend: {recommend}, content: {content}, images: {images_str})")
+                # logging.debug(f"Existing record found: (seq: {seq}, reg_date: {existing_reg_date}, views: {existing_views}, recommend: {existing_recommend}, content: {existing_content}, images: {existing_images})")
+                # logging.debug(f"New record data: (reg_date: {reg_date_value}, views: {views}, recommend: {recommend}, content: {content}, images: {images_str})")
                 
                 # existing_views와 existing_recommend를 문자열로 처리
                 existing_views = str(existing_views) if existing_views is not None else '0'
@@ -415,21 +335,21 @@ def insert_to_db(data, is_politics=True):
                 )
                 
                 if is_identical:
-                    logging.debug(f"Records are identical. Skipping - Title: {title}, Writer: {writer}")
+                    # logging.debug(f"Records are identical. Skipping - Title: {title}, Writer: {writer}")
                     continue
                 else:
-                    logging.debug(f"Records differ. Updating record with seq: {seq}")
+                    # logging.debug(f"Records differ. Updating record with seq: {seq}")
                     update_values = (reg_date_value, views, recommend, content, images_str, seq)
-                    logging.debug(f"업데이트 직전 update_values: {update_values}")
-                    logging.debug(f"update_values 타입: {[type(val) for val in update_values]}")
+                    # logging.debug(f"업데이트 직전 update_values: {update_values}")
+                    # logging.debug(f"update_values 타입: {[type(val) for val in update_values]}")
                     update_site_info(cursor, table_name, update_values)
-                    logging.debug(f"Successfully updated record - Title: {title}, Writer: {writer}")
+                    # logging.debug(f"Successfully updated record - Title: {title}, Writer: {writer}")
             else:
                 logging.error(f"Invalid existing data format: {existing}")
                 continue
         
         conn.commit()
-        logging.info(f"Transaction committed for table: {table_name}")
+        # logging.info(f"Transaction committed for table: {table_name}")
         return True
         
     except mysql.connector.Error as e:
@@ -464,10 +384,14 @@ if check_crawler_files():
     # 메인 루프
     try:
         # 시작 시 즉시 실행
+        scheduler_start_time = datetime.now()
+        logging.info(f"스케줄러 시작 시간: {scheduler_start_time.strftime('%Y-%m-%d %H:%M:%S')}")
         run_all_crawlers()
         
         while True:
             try:
+                current_time = datetime.now()
+                logging.info(f"스케줄 확인 중... (시작 시간: {scheduler_start_time.strftime('%H:%M:%S')}, 현재 시간: {current_time.strftime('%H:%M:%S')})")
                 schedule.run_pending()
                 time.sleep(60)  # 1분마다 스케줄 확인
             except Exception as e:

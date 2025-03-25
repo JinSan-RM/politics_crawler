@@ -291,7 +291,7 @@ if __name__ == "__main__":
     
     df = ruliweb_politics_crawl(
         delay=2,  # delay 줄임
-        min_views=200,
+        min_views=500,
         max_consecutive_not_today=3,
         max_pages=5  # 최대 페이지 제한 추가
     )

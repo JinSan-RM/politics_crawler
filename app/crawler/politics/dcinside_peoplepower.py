@@ -173,7 +173,7 @@ if __name__ == "__main__":
         except Exception as e:
             print(f"폴더 생성 중 오류 발생: {e}")
     
-    df = dcinside_peoplepower_crawl(delay=5, min_views=200)  # 최소 조회수 1000으로 설정
+    df = dcinside_peoplepower_crawl(delay=5, min_views=150)  # 최소 조회수 1000으로 설정
     if df is not None:
         print(df[["Post ID", "Category", "Title", "Writer", "Date", "Views", "Recommend", "Content", "Images"]])
         
