@@ -17,11 +17,7 @@ services:
       # 사용할 Dockerfile이름
       dockerfile: Dockerfile
     environment:
-      DB_HOST: 133.186.218.214
-      DB_PORT: 3306
-      DB_USER: weven
-      DB_PASSWORD: weven00#!!
-      DB_NAME: wv_user_site_centerpoll
+
     # volume지정
     command: "python3 /code/app/crawler/crawler_schedule.py"
     volumes:
